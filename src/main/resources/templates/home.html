@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${projectName}">AWS S3 Example Project</title>
+    <style>
+        :root {
+            --bg-start: #e8f7ff;
+            --bg-end: #fff6e9;
+            --card: #ffffff;
+            --text: #12324a;
+            --accent: #0f8bcf;
+            --accent-2: #ff7c3a;
+            --muted: #5f7485;
+            --ok: #1e9e5a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 20% 20%, #d9f4ff 0%, transparent 35%),
+            radial-gradient(circle at 80% 10%, #ffe8d9 0%, transparent 35%),
+            linear-gradient(130deg, var(--bg-start), var(--bg-end));
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: min(760px, 100%);
+            background: var(--card);
+            border-radius: 24px;
+            padding: clamp(24px, 4vw, 44px);
+            box-shadow: 0 20px 60px rgba(18, 50, 74, 0.15);
+            border: 1px solid rgba(15, 139, 207, 0.15);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            background: #ecfbf3;
+            color: #0f7a43;
+            border: 1px solid #c7eed8;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+            box-shadow: 0 0 12px var(--ok);
+            animation: liveBlink 1.2s ease-in-out infinite, livePulse 1.8s ease-out infinite;
+        }
+
+        @keyframes liveBlink {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.35;
+            }
+        }
+
+        @keyframes livePulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(30, 158, 90, 0.55), 0 0 12px var(--ok);
+            }
+            70% {
+                transform: scale(1.15);
+                box-shadow: 0 0 0 10px rgba(30, 158, 90, 0), 0 0 18px var(--ok);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(30, 158, 90, 0), 0 0 12px var(--ok);
+            }
+        }
+
+        h1 {
+            margin: 20px 0 12px;
+            font-size: clamp(28px, 5vw, 46px);
+            line-height: 1.1;
+            letter-spacing: 0.5px;
+        }
+
+        p {
+            margin: 0;
+            font-size: clamp(16px, 2.2vw, 20px);
+            color: var(--muted);
+        }
+
+        .grid {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .actions {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .btn-view {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            padding: 12px 18px;
+            border-radius: 12px;
+            color: #ffffff;
+            background: linear-gradient(120deg, var(--accent), var(--accent-2));
+            box-shadow: 0 10px 24px rgba(15, 139, 207, 0.28);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+
+        .btn-view:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(15, 139, 207, 0.34);
+            filter: saturate(1.05);
+        }
+
+        .btn-view:active {
+            transform: translateY(0);
+        }
+
+        .item {
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: linear-gradient(120deg, rgba(15, 139, 207, 0.08), rgba(255, 124, 58, 0.08));
+            border: 1px solid rgba(18, 50, 74, 0.08);
+        }
+
+        .item strong {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+
+        .item span {
+            font-size: 16px;
+            color: var(--text);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<main class="card">
+    <div class="badge">
+        <span class="dot"></span>
+        Приложение запущено
+    </div>
+
+    <h1 th:text="${projectName}">AWS S3 Example Project</h1>
+    <p>Если вы видите эту страницу, контроллер и шаблон работают корректно.</p>
+
+    <section class="grid">
+        <article class="item">
+            <strong>Route</strong>
+            <span>GET /</span>
+        </article>
+        <article class="item">
+            <strong>Template</strong>
+            <span>home.html</span>
+        </article>
+        <article class="item">
+            <strong>Дата</strong>
+            <span th:text="${today}">2026-04-12</span>
+        </article>
+    </section>
+
+    <section class="actions">
+        <a class="btn-view" href="/view">Открыть картинку из S3</a>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} ?: 'Поток изображения'">Поток изображения</title>
+    <style>
+        :root {
+            --bg-a: #f5f9ff;
+            --bg-b: #fff4ec;
+            --card: #ffffff;
+            --text: #18253a;
+            --muted: #5f6f85;
+            --accent: #196cc9;
+            --accent-2: #ff7a3d;
+            --ok: #1f9b5f;
+            --err: #d54f4f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            color: var(--text);
+            font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+            background:
+                radial-gradient(50rem 30rem at 10% 10%, rgba(25, 108, 201, 0.12), transparent 60%),
+                radial-gradient(40rem 25rem at 90% 0%, rgba(255, 122, 61, 0.14), transparent 60%),
+                linear-gradient(120deg, var(--bg-a), var(--bg-b));
+        }
+
+        .panel {
+            width: min(980px, 100%);
+            background: linear-gradient(140deg, #ffffff, #fcfdff);
+            border: 1px solid rgba(24, 37, 58, 0.1);
+            border-radius: 22px;
+            box-shadow: 0 20px 60px rgba(24, 37, 58, 0.14);
+            overflow: hidden;
+        }
+
+        .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(24, 37, 58, 0.08);
+            background: linear-gradient(90deg, rgba(25, 108, 201, 0.08), rgba(255, 122, 61, 0.08));
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(22px, 2.8vw, 34px);
+            line-height: 1.1;
+            letter-spacing: 0.2px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            color: #0b6a3d;
+            background: #eaf8f0;
+            border: 1px solid #c9ecd8;
+            white-space: nowrap;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+            box-shadow: 0 0 8px var(--ok);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.45;
+            }
+        }
+
+        .body {
+            padding: 20px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .frame {
+            position: relative;
+            width: 100%;
+            min-height: min(62vh, 520px);
+            border-radius: 18px;
+            overflow: hidden;
+            background:
+                linear-gradient(120deg, rgba(25, 108, 201, 0.2), rgba(255, 122, 61, 0.2)),
+                repeating-linear-gradient(
+                    -45deg,
+                    rgba(255, 255, 255, 0.14),
+                    rgba(255, 255, 255, 0.14) 18px,
+                    rgba(255, 255, 255, 0.06) 18px,
+                    rgba(255, 255, 255, 0.06) 36px
+                );
+            border: 1px solid rgba(24, 37, 58, 0.14);
+        }
+
+        #streamImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        .hint {
+            margin: 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .status {
+            margin: 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .status.error {
+            color: var(--err);
+        }
+
+        @media (max-width: 640px) {
+            .head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .frame {
+                min-height: 46vh;
+            }
+        }
+    </style>
+</head>
+<body th:attr="data-stream-endpoint=${streamEndpoint} ?: '/image/stream',data-refresh-ms=${refreshMs} ?: 1200">
+<main class="panel">
+    <header class="head">
+        <h1 th:text="${header} ?: 'Потоковое изображение'">Потоковое изображение</h1>
+        <div class="badge" id="liveBadge">
+            <span class="dot"></span>
+            Live stream
+        </div>
+    </header>
+
+    <section class="body">
+        <div class="frame">
+            <img id="streamImage" alt="Потоковое изображение" />
+        </div>
+
+        <p class="hint">Кадр обновляется из потокового endpoint контроллера.</p>
+        <p class="status" id="streamStatus">Подключение к потоку...</p>
+    </section>
+</main>
+
+<script>
+    (function () {
+        const body = document.body;
+        const endpoint = body.dataset.streamEndpoint || "/image/stream";
+        const refreshMs = Number(body.dataset.refreshMs || 1200);
+        const img = document.getElementById("streamImage");
+        const status = document.getElementById("streamStatus");
+
+        let activeObjectUrl = null;
+        let timerId = null;
+
+        async function loadFrame() {
+            try {
+                const response = await fetch(endpoint, { cache: "no-store" });
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+
+                const blob = await response.blob();
+                const nextObjectUrl = URL.createObjectURL(blob);
+                img.src = nextObjectUrl;
+
+                if (activeObjectUrl) {
+                    URL.revokeObjectURL(activeObjectUrl);
+                }
+                activeObjectUrl = nextObjectUrl;
+
+                status.classList.remove("error");
+                status.textContent = "Поток активен";
+            } catch (error) {
+                status.classList.add("error");
+                status.textContent = "Ошибка потока: " + error.message;
+            } finally {
+                timerId = window.setTimeout(loadFrame, refreshMs);
+            }
+        }
+
+        loadFrame();
+
+        window.addEventListener("beforeunload", function () {
+            if (timerId) {
+                window.clearTimeout(timerId);
+            }
+            if (activeObjectUrl) {
+                URL.revokeObjectURL(activeObjectUrl);
+            }
+        });
+    })();
+</script>
+</body>
+</html>
